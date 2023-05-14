@@ -9,12 +9,13 @@ public class Player : NetworkBehaviour
     [SerializeField] private Ball _prefabBall;
     [SerializeField] private PhysxBall _prefabPhysxBall;
     [SerializeField] private float _physxBallVelocity = 10f;
-    
+
     [Networked] 
     private TickTimer Delay { get; set; }
     [Networked(OnChanged = nameof(OnBallSpawned))]
     private NetworkBool BallSpawnTrigger { get; set; }
     
+    private PlayerHud _playerHud;
     private NetworkCharacterControllerPrototype _characterController;
     private Vector3 _forward;
     private Material _material;
@@ -33,6 +34,14 @@ public class Player : NetworkBehaviour
     {
         _characterController = GetComponent<NetworkCharacterControllerPrototype>();
         Material.color = Color.blue;
+    }
+    
+    private void Update()
+    {
+        if (Object.HasInputAuthority && Input.GetKeyDown(KeyCode.R))
+        {
+            RPC_ShowPopup();
+        }
     }
 
     public override void Render()
@@ -90,5 +99,13 @@ public class Player : NetworkBehaviour
                 ballObject.GetComponent<PhysxBall>().Init(_physxBallVelocity * _forward);
             });
         BallSpawnTrigger = !BallSpawnTrigger;
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    private void RPC_ShowPopup(RpcInfo info = default)
+    {
+        if (_playerHud == null)
+            _playerHud = FindObjectOfType<PlayerHud>();
+        _playerHud.ShowMessage((info.IsInvokeLocal ? "You said: " : "Player " + info.Source.PlayerId + " said: ") + "Hello!");
     }
 }
