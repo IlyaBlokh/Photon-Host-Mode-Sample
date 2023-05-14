@@ -10,13 +10,34 @@ public class Player : NetworkBehaviour
     [SerializeField] private PhysxBall _prefabPhysxBall;
     [SerializeField] private float _physxBallVelocity = 10f;
     
-    [Networked] private TickTimer Delay { get; set; }
+    [Networked] 
+    private TickTimer Delay { get; set; }
+    [Networked(OnChanged = nameof(OnBallSpawned))]
+    private NetworkBool BallSpawnTrigger { get; set; }
+    
     private NetworkCharacterControllerPrototype _characterController;
     private Vector3 _forward;
+    private Material _material;
+
+    private Material Material
+    {
+        get
+        {
+            if (_material == null)
+                _material = GetComponentInChildren<MeshRenderer>().material;
+            return _material;
+        }
+    }
 
     private void Awake()
     {
         _characterController = GetComponent<NetworkCharacterControllerPrototype>();
+        Material.color = Color.blue;
+    }
+
+    public override void Render()
+    {
+        Material.color = Color.Lerp(Material.color, Color.blue, Time.deltaTime);
     }
 
     public override void FixedUpdateNetwork()
@@ -38,6 +59,11 @@ public class Player : NetworkBehaviour
             }
         }
     }
+    
+    public static void OnBallSpawned(Changed<Player> changed)
+    {
+        changed.Behaviour.Material.color = Color.white;
+    }
 
     private void SpawnBall()
     {
@@ -49,6 +75,7 @@ public class Player : NetworkBehaviour
             {
                 ballObject.GetComponent<Ball>().Init();
             });
+        BallSpawnTrigger = !BallSpawnTrigger;
     }
 
     private void SpawnPhysxBall()
@@ -62,5 +89,6 @@ public class Player : NetworkBehaviour
             {
                 ballObject.GetComponent<PhysxBall>().Init(_physxBallVelocity * _forward);
             });
+        BallSpawnTrigger = !BallSpawnTrigger;
     }
 }
