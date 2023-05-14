@@ -10,6 +10,7 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private NetworkPrefabRef _playerPrefab;
     private readonly Dictionary<PlayerRef, NetworkObject> _spawnedCharacters = new();
     private NetworkRunner _runner;
+    private bool _mouseButton0;
 
     private async void StartGame(GameMode gameMode)
     {
@@ -33,6 +34,11 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
             StartGame(GameMode.Host);
         if (GUI.Button(new Rect(0, 40, 200, 40), "Join"))
             StartGame(GameMode.Client);
+    }
+    
+    private void Update()
+    {
+        _mouseButton0 |= Input.GetMouseButton(0);
     }
     
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -69,7 +75,11 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         if (Input.GetKey(KeyCode.D))
             data.Direction += Vector3.right;
-
+        
+        if (_mouseButton0)
+            data.Buttons |= NetworkInputData.MOUSEBUTTON1;
+        _mouseButton0 = false;
+        
         input.Set(data);
     }
 
