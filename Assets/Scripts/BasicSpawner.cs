@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 
 public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
+    [SerializeField] private NetworkPrefabRef _playerPrefab;
+    private readonly Dictionary<PlayerRef, NetworkObject> _spawnedCharacters = new();
     private NetworkRunner _runner;
 
     private async void StartGame(GameMode gameMode)
@@ -35,17 +37,40 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        
+        if (runner.IsServer)
+        {
+            Vector3 spawnPosition = new Vector3(player.RawEncoded % runner.Config.Simulation.DefaultPlayers * 3, 1, 0);
+            NetworkObject networkPlayerObject = runner.Spawn(_playerPrefab, spawnPosition, Quaternion.identity, player);
+            _spawnedCharacters.Add(player, networkPlayerObject);
+        }
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        
+        if (_spawnedCharacters.TryGetValue(player, out NetworkObject networkObject))
+        {
+            runner.Despawn(networkObject);
+            _spawnedCharacters.Remove(player);
+        }
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        
+        var data = new NetworkInputData();
+
+        if (Input.GetKey(KeyCode.W))
+            data.Direction += Vector3.forward;
+
+        if (Input.GetKey(KeyCode.S))
+            data.Direction += Vector3.back;
+
+        if (Input.GetKey(KeyCode.A))
+            data.Direction += Vector3.left;
+
+        if (Input.GetKey(KeyCode.D))
+            data.Direction += Vector3.right;
+
+        input.Set(data);
     }
 
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input)
